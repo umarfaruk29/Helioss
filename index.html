@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELIOS — Fusion Reactor Console</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Bebas+Neue&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green: #39ff7a;
+    --green-dim: #1a6b38;
+    --green-glow: rgba(57, 255, 122, 0.15);
+    --bg: #000000;
+    --text: #e8f5ee;
+    --muted: rgba(232, 245, 238, 0.45);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--green);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, opacity 0.2s;
+    box-shadow: 0 0 12px var(--green), 0 0 30px rgba(57,255,122,0.4);
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 34px; height: 34px;
+    border: 1px solid rgba(57,255,122,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.18s ease, width 0.2s, height 0.2s;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 36px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+    opacity: 0.9;
+  }
+  .nav-logo-ring {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--green);
+    border-radius: 50%;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 8px rgba(57,255,122,0.5);
+  }
+  .nav-logo-ring::after {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(8px);
+    cursor: none;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+  .nav-pill:hover { border-color: rgba(57,255,122,0.4); color: var(--green); background: rgba(57,255,122,0.06); }
+  .nav-pill .dot {
+    width: 5px; height: 5px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--green);
+  }
+  .nav-pill-cta {
+    border-color: rgba(57,255,122,0.35);
+    color: var(--green);
+    background: rgba(57,255,122,0.08);
+  }
+  .nav-pill-cta:hover { background: rgba(57,255,122,0.15); }
+
+  /* HERO */
+  #hero {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  canvas#galaxy {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 14vw, 180px);
+    letter-spacing: 0.06em;
+    line-height: 0.9;
+    color: #fff;
+    text-shadow: 0 0 60px rgba(57,255,122,0.2), 0 0 120px rgba(57,255,122,0.1);
+    animation: fadeUp 1.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    max-width: 320px;
+    line-height: 1.6;
+    animation: fadeUp 1.2s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .hero-desc {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: rgba(232,245,238,0.3);
+    max-width: 380px;
+    line-height: 1.7;
+    animation: fadeUp 1.2s 0.25s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .hero-cta {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 1.2s 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 26px;
+    border: 1px solid rgba(57,255,122,0.5);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--green);
+    background: rgba(57,255,122,0.07);
+    backdrop-filter: blur(10px);
+    cursor: none;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(57,255,122,0.15), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .btn-primary:hover { border-color: var(--green); box-shadow: 0 0 30px rgba(57,255,122,0.2); }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-arrow {
+    width: 18px; height: 18px;
+    border: 1px solid rgba(57,255,122,0.6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+  }
+
+  .scroll-hint {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232,245,238,0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 28px;
+    background: linear-gradient(to bottom, rgba(57,255,122,0.4), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  /* SECTIONS */
+  section {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .section-inner {
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+    padding: 80px 40px;
+    width: 100%;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    width: 30px; height: 1px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 80px);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+  }
+
+  .section-body {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 560px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .card {
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 28px;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(10px);
+    transition: border-color 0.3s, background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(57,255,122,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover { border-color: rgba(57,255,122,0.2); background: rgba(57,255,122,0.04); }
+  .card:hover::before { opacity: 1; }
+
+  .card-num {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  .card-body {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+
+  /* Divider */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(57,255,122,0.15), transparent);
+    margin: 0 auto;
+  }
+
+  /* Footer */
+  footer {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 40px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: rgba(232,245,238,0.25);
+    text-transform: uppercase;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50%       { opacity: 0.8; transform: scaleY(1.3); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.9s cubic-bezier(0.22,1,0.36,1), transform 0.9s cubic-bezier(0.22,1,0.36,1);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* Green ambient glow */
+  .ambient {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .ambient-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(57,255,122,0.06) 0%, transparent 70%);
+    bottom: -200px; left: 50%;
+    transform: translateX(-50%);
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Background starfield canvas -->
+<canvas id="starfield"></canvas>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-ring"></div>
+    Helios
+  </div>
+  <div class="nav-links">
+    <div class="nav-pill"><span class="dot"></span> Console</div>
+    <div class="nav-pill">Outcome</div>
+    <div class="nav-pill nav-pill-cta">View Live Demo ↗</div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <canvas id="galaxy"></canvas>
+  <div class="ambient ambient-1"></div>
+
+  <div class="hero-content">
+    <div class="hero-title">HELIOS</div>
+    <div class="hero-sub">Designing the operator console for a fusion reactor.</div>
+    <div class="hero-desc">A 9-month engagement helping a deuterium-tritium fusion startup design the central interface that plasma engineers trust under load.</div>
+    <div class="hero-cta">
+      <button class="btn-primary">
+        Begin Briefing
+        <span class="btn-arrow">↓</span>
+      </button>
+      <div class="scroll-hint">
+        <div class="scroll-line"></div>
+        Scroll to enter
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 1 -->
+<section>
+  <div class="section-inner">
+    <div class="section-label reveal">01 — Overview</div>
+    <h2 class="section-title reveal">The&nbsp;Challenge</h2>
+    <p class="section-body reveal">Helios Energy needed a real-time monitoring interface capable of displaying thousands of sensor readings per second across a tokamak plasma containment system — while remaining readable under extreme cognitive load during ignition sequences.</p>
+
+    <div class="cards">
+      <div class="card reveal">
+        <div class="card-num">01</div>
+        <div class="card-title">Real-time Data</div>
+        <div class="card-body">12,000+ sensor readings per second rendered without frame drops across six display zones.</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-num">02</div>
+        <div class="card-title">Operator Safety</div>
+        <div class="card-body">Critical alerts required a sub-200ms response pipeline from plasma anomaly to operator notification.</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-num">03</div>
+        <div class="card-title">Zero Tolerance</div>
+        <div class="card-body">Interface errors during an ignition event could result in uncontrolled plasma disruption — design had to be flawless.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Section 2 -->
+<section>
+  <div class="section-inner">
+    <div class="section-label reveal">02 — Roadmap</div>
+    <h2 class="section-title reveal">Nine Months,<br>One Console</h2>
+    <p class="section-body reveal">From discovery through live deployment in the Helios Mk-IV test facility. Each sprint refined the information hierarchy around plasma physicists' actual mental models — not assumed ones.</p>
+
+    <div class="cards" style="grid-template-columns: 1fr 1fr; margin-top: 48px;">
+      <div class="card reveal">
+        <div class="card-num">Phase 01 · Months 1–2</div>
+        <div class="card-title">Discovery & Ethnography</div>
+        <div class="card-body">Shadowed operators during 6 ignition sequences. Identified 23 failure modes in the legacy interface through contextual inquiry.</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-num">Phase 02 · Months 3–4</div>
+        <div class="card-title">System Architecture</div>
+        <div class="card-body">Defined the information hierarchy across five core modules: containment, heating, diagnostics, vacuum, and cryogenics.</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-num">Phase 03 · Months 5–7</div>
+        <div class="card-title">Interface Design</div>
+        <div class="card-body">120+ screens across high-fidelity prototypes. Validated with operators in simulated ignition drills before any development began.</div>
+      </div>
+      <div class="card reveal">
+        <div class="card-num">Phase 04 · Months 8–9</div>
+        <div class="card-title">Deployment & Tuning</div>
+        <div class="card-body">Embedded with the engineering team during Mk-IV integration. Iterated on alert thresholds and data density in real reactor conditions.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Section 3 / Outcome -->
+<section>
+  <div class="section-inner">
+    <div class="section-label reveal">03 — Outcome</div>
+    <h2 class="section-title reveal">Results</h2>
+    <p class="section-body reveal">The Helios console shipped 11 days ahead of schedule and was operational for the facility's first successful Q&gt;1 ignition event — the first in the company's history.</p>
+    <div class="cards" style="grid-template-columns: repeat(3, 1fr); margin-top: 48px;">
+      <div class="card reveal" style="text-align: center;">
+        <div style="font-family: 'Bebas Neue'; font-size: 52px; color: var(--green); line-height:1; margin-bottom: 8px;">94%</div>
+        <div class="card-body">Reduction in operator response time to critical alerts</div>
+      </div>
+      <div class="card reveal" style="text-align: center;">
+        <div style="font-family: 'Bebas Neue'; font-size: 52px; color: var(--green); line-height:1; margin-bottom: 8px;">0</div>
+        <div class="card-body">Interface-related incidents during the first 6 ignition events</div>
+      </div>
+      <div class="card reveal" style="text-align: center;">
+        <div style="font-family: 'Bebas Neue'; font-size: 52px; color: var(--green); line-height:1; margin-bottom: 8px;">Q&gt;1</div>
+        <div class="card-body">First energy-positive ignition achieved using this console</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2026 Helios Energy — Confidential</span>
+  <span>Fusion Interface Design</span>
+</footer>
+
+<script>
+// ─── CURSOR ──────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+(function animCursor() {
+  cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+
+document.querySelectorAll('button, .nav-pill, .card').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.style.transform = 'translate(-50%,-50%) scale(2)'; ring.style.transform = 'translate(-50%,-50%) scale(1.5)'; });
+  el.addEventListener('mouseleave', () => { cursor.style.transform = 'translate(-50%,-50%) scale(1)'; ring.style.transform = 'translate(-50%,-50%) scale(1)'; });
+});
+
+// ─── STARFIELD ───────────────────────────────────────────
+const sfCanvas = document.getElementById('starfield');
+const sfCtx = sfCanvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+  sfCanvas.width = window.innerWidth;
+  sfCanvas.height = window.innerHeight;
+  stars = Array.from({ length: 220 }, () => ({
+    x: Math.random() * sfCanvas.width,
+    y: Math.random() * sfCanvas.height,
+    r: Math.random() * 1.2,
+    alpha: Math.random() * 0.5 + 0.1,
+    speed: Math.random() * 0.15 + 0.02,
+    twinkle: Math.random() * Math.PI * 2
+  }));
+}
+
+function drawStars(t) {
+  sfCtx.clearRect(0, 0, sfCanvas.width, sfCanvas.height);
+  stars.forEach(s => {
+    s.twinkle += 0.008;
+    const a = s.alpha * (0.6 + 0.4 * Math.sin(s.twinkle));
+    sfCtx.beginPath();
+    sfCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    sfCtx.fillStyle = `rgba(220, 255, 235, ${a})`;
+    sfCtx.fill();
+  });
+}
+
+// ─── GALAXY SPIRAL ───────────────────────────────────────
+const gCanvas = document.getElementById('galaxy');
+const gCtx = gCanvas.getContext('2d');
+let particles = [];
+let galaxyAngle = 0;
+
+function initGalaxy() {
+  gCanvas.width = gCanvas.offsetWidth;
+  gCanvas.height = gCanvas.offsetHeight;
+  particles = [];
+  const N = 2800;
+  const arms = 3;
+
+  for (let i = 0; i < N; i++) {
+    const arm = Math.floor(Math.random() * arms);
+    const t = Math.random();
+    const angle = arm * (Math.PI * 2 / arms) + t * Math.PI * 4;
+    const radius = 30 + t * 320 + (Math.random() - 0.5) * 60;
+    const scatter = (1 - t) * 0 + t * 30;
+    const px = Math.cos(angle) * radius + (Math.random() - 0.5) * scatter;
+    const py = Math.sin(angle) * radius * 0.38 + (Math.random() - 0.5) * scatter * 0.4;
+
+    const bright = Math.random();
+    const size = bright > 0.97 ? Math.random() * 2.5 + 1 : Math.random() * 1.2 + 0.2;
+    const green = 160 + Math.floor(Math.random() * 95);
+    const alpha = (0.25 + bright * 0.75) * (1 - t * 0.35);
+
+    particles.push({ angle, px, py, size, green, alpha, orbit: t * 0.003 + 0.0005 });
+  }
+
+  // Core glow particles
+  for (let i = 0; i < 60; i++) {
+    const r = Math.random() * 18;
+    const a = Math.random() * Math.PI * 2;
+    particles.push({
+      angle: a, px: Math.cos(a) * r, py: Math.sin(a) * r * 0.38,
+      size: Math.random() * 2 + 0.5, green: 255, alpha: Math.random() * 0.9 + 0.1,
+      orbit: 0, isCore: true
+    });
+  }
+}
+
+function drawGalaxy(t) {
+  gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+  const cx = gCanvas.width / 2;
+  const cy = gCanvas.height / 2;
+
+  galaxyAngle += 0.0006;
+
+  // Core glow
+  const grad = gCtx.createRadialGradient(cx, cy, 0, cx, cy, 90);
+  grad.addColorStop(0, 'rgba(80, 255, 150, 0.18)');
+  grad.addColorStop(0.4, 'rgba(40, 200, 100, 0.06)');
+  grad.addColorStop(1, 'transparent');
+  gCtx.fillStyle = grad;
+  gCtx.fillRect(0, 0, gCanvas.width, gCanvas.height);
+
+  gCtx.save();
+  gCtx.translate(cx, cy);
+  gCtx.rotate(galaxyAngle);
+
+  particles.forEach(p => {
+    const g = p.green;
+    gCtx.beginPath();
+    gCtx.arc(p.px, p.py, p.size, 0, Math.PI * 2);
+    gCtx.fillStyle = `rgba(${Math.round(g * 0.18)}, ${g}, ${Math.round(g * 0.45)}, ${p.alpha})`;
+    gCtx.fill();
+
+    if (p.size > 1.5 || p.isCore) {
+      gCtx.beginPath();
+      gCtx.arc(p.px, p.py, p.size * 2.5, 0, Math.PI * 2);
+      gCtx.fillStyle = `rgba(57, 255, 122, ${p.alpha * 0.15})`;
+      gCtx.fill();
+    }
+  });
+
+  gCtx.restore();
+}
+
+// ─── MAIN LOOP ───────────────────────────────────────────
+function loop(t) {
+  drawStars(t);
+  drawGalaxy(t);
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', () => {
+  initStars();
+  initGalaxy();
+});
+
+initStars();
+initGalaxy();
+requestAnimationFrame(loop);
+
+// ─── SCROLL REVEAL ───────────────────────────────────────
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
